@@ -130,6 +130,8 @@ var Hyperlapse = function(container, params) {
 		_lat = 0, _lon = 0,
 		_position_x = 0, _position_y = 0,
 		_is_playing = false, _is_loading = false,
+		__nextFrame = true,
+		__frameNum = 0,
 		_point_index = 0,
 		_origin_heading = 0, _origin_pitch = 0,
 		_forward = true,
@@ -179,6 +181,8 @@ var Hyperlapse = function(container, params) {
 	_scene = new THREE.Scene();
 	_scene.add( _camera );
 
+	//_render = new THREE.WebGLRenderer({antialias: true, preserveDrawingBuffer: true});
+
   // Check if we can use webGL
   var isWebGL = function () {
     try {
@@ -190,7 +194,7 @@ var Hyperlapse = function(container, params) {
     }
   };
 
-  _renderer = isWebGL() ? new THREE.WebGLRenderer() : new THREE.CanvasRenderer();
+  _renderer = isWebGL() ? new THREE.WebGLRenderer({antialias: true, preserveDrawingBuffer: true}) : new THREE.CanvasRenderer();
 	_renderer.autoClearColor = false;
 	_renderer.setSize( _w, _h );
 
@@ -433,6 +437,11 @@ var Hyperlapse = function(container, params) {
 	};
 
 	var drawMaterial = function() {
+
+		if (!__nextFrame) {
+			return;
+		}
+
 		_mesh.material.map.image = _h_points[_point_index].image;
 		_mesh.material.map.needsUpdate = true;
 
@@ -454,6 +463,8 @@ var Hyperlapse = function(container, params) {
 			position:_point_index,
 			point: _h_points[_point_index]
 		});
+
+		saveFrame();
 	};
 
 	var render = function() {
@@ -494,13 +505,30 @@ var Hyperlapse = function(container, params) {
 		_ctime = Date.now();
 		_dtime += _ctime - ptime;
 		if(_dtime >= self.millis) {
-			if(_is_playing) loop();
+			if(_is_playing && __nextFrame) {
+				loop();
+			}
 			_dtime = 0;
 		}
 
 		requestAnimationFrame( animate );
 		render();
 	};
+
+	function saveFrame() {
+		__nextFrame = false;
+
+		if (self.toSave) {
+			var data = _renderer.domElement.toDataURL("image/png").replace(/data:image\/png;base64,/, '');
+			$.post('save_image.php?folder='+window.saveFolder+'&frame=' + __frameNum, {data: data}, function (rep) {
+				__nextFrame = true;
+				__frameNum++;
+			});
+		}
+		else {
+			__nextFrame = true;
+		}
+	}
 
 	// animates the playhead forward or backward depending on direction
 	var loop = function() {
@@ -512,6 +540,11 @@ var Hyperlapse = function(container, params) {
 				_forward = !_forward;
 			}
 		} else {
+
+			if (self.toSave) {
+				_is_playing = false;
+			}
+
 			if(--_point_index == -1) {
 				_point_index = 0;
 				_forward = !_forward;
@@ -561,6 +594,12 @@ var Hyperlapse = function(container, params) {
 	 * @type {boolean}
 	 */
 	this.use_lookat = _params.use_lookat || false;
+
+	/**
+	 * @default false
+	 * @type {boolean}
+	 */
+	this.toSave = _params.toSave || false;
 
 	/**
 	 * @default false

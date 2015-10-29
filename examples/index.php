@@ -9,6 +9,7 @@
 	<script src="js/three.min.js"></script>
 	<script src="js/GSVPano.js"></script>
 	<script src="../src/Hyperlapse.js"></script>
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
 	<script> 
 	
 		var start_point = new google.maps.LatLng(44.3431,6.783936);
@@ -144,6 +145,7 @@
 				height: window.innerHeight,
 				zoom: 2,
 				use_lookat: true,
+				toSave: false,
 				distance_between_points: 5,
 				max_points: 100,
 				elevation: _elevation
@@ -228,7 +230,6 @@
 				//hyperlapse.position.y = py;
 			}, false );
 
-			
 
 			/* Dat GUI */
 
@@ -247,6 +248,7 @@
 				position_x:0,
 				position_y:0,
 				use_lookat:true,
+				toSave: false,
 				screen_width: window.innerWidth,
 				screen_height: window.innerHeight,
 				generate:function(){
@@ -371,6 +373,19 @@
 				hyperlapse.use_lookat = value;
 			});
 
+			var save_control = parameters.add(o, 'toSave')
+			save_control.onChange(function(value) {
+				hyperlapse.toSave = value;
+				if (value) {
+					window.saveFolder = Date.now();
+					$('#folderId').html(window.saveFolder);
+					$('#fileInfoBlock').show();
+				}
+				else {
+					$('#fileInfoBlock').hide();
+				}
+			});
+
 			parameters.open();
 			
 
@@ -429,9 +444,15 @@
 				<button type="submit" id="searchButton" >Search</button>
 			</form>
 		</div>
+		<div id="fileInfoBlock" style="background-color: white;
+    width: 300px;
+    padding: 10px;
+    position: absolute;
+    right: 280px;
+    top: 19px;
+    display: none;">Адрес к картинкам: <?=$_SERVER['HTTP_HOST']?>/examples/saves/<span id="folderId"></span></div>
 		<div id="text" style="width: 500px; height: 120px; float: left; padding-top: 10px; z-index:0; border-style:solid; border-width:medium;"></div>
 	</div>
-	
-	
+
 </body> 
 </html>
